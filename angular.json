@@ -27,9 +27,12 @@
               "src/assets"
             ],
             "styles": [
-              "src/styles.css"
+              "src/styles.css",
+              "node_modules/bootstrap/scss/bootstrap.scss"
             ],
-            "scripts": []
+            "scripts": [
+              "node_modules/bootstrap/dist/js/bootstrap.bundle.min.js"
+            ]
           },
           "configurations": {
             "production": {
@@ -71,7 +74,8 @@
               "browserTarget": "silvifrid-admin:build:production"
             },
             "development": {
-              "browserTarget": "silvifrid-admin:build:development"
+              "browserTarget": "silvifrid-admin:build:development",
+              "port": 4300
             }
           },
           "defaultConfiguration": "development"

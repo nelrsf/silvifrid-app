@@ -1,0 +1,7 @@
+<div class="d-flex justify-content-center mt-5">
+    <div class="card">
+        <a class="btn btn-outline-success my-2 mx-5" [href]="getUrl(item)" *ngFor="let item of permissionsAsMenu">
+            {{item.caption}}
+        </a>
+    </div>
+</div>

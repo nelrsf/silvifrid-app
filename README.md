@@ -199,7 +199,7 @@ ng build --configuration production
 export const environment = {
   production: false,
   api_url: "http://localhost:4000",
-  secret: "SILVIA_JULIANA"
+  secret: "[SECRET_KEY]" // Configurar clave secreta
 };
 ```
 
@@ -207,8 +207,8 @@ export const environment = {
 ```typescript
 export const environment = {
   production: true,
-  api_url: "https://silvifrid-gateway.vercel.app",
-  secret: "SILVIA_JULIANA"
+  api_url: "[API_URL]", // Configurar URL de API de producción
+  secret: "[SECRET_KEY]" // Configurar clave secreta
 };
 ```
 
@@ -283,7 +283,7 @@ Para información más detallada, consultar:
 
 ## 📄 Licencia
 
-Este proyecto está bajo la licencia [especificar licencia].
+Este proyecto es propiedad de **Silvifrid** y está protegido por derechos de autor.
 
 ---
 

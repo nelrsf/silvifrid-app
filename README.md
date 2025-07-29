@@ -31,7 +31,6 @@ Panel de administración web para el sistema Silvifrid, desarrollado con Angular
 
 ### APIs y Servicios
 - **API de Desarrollo**: `http://localhost:4000`
-- **API de Producción**: `https://silvifrid-gateway.vercel.app`
 
 ## 🏗️ Arquitectura de la Aplicación
 

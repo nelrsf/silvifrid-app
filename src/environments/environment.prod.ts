@@ -1,5 +1,5 @@
 export const environment = {
   production: true,
-  api_url: "https://silvifrid-gateway.vercel.app",
-  secret: "SILVIA_JULIANA"
+  api_url: "[API_URL]",
+  secret: "[SECRET_KEY]"
 };

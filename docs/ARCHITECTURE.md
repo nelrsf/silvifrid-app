@@ -214,24 +214,14 @@ getUserStream(): Observable<AdmUser> {
 ### 2. Implementación de Seguridad
 
 **Encriptación de Credenciales:**
-```typescript
-encryptCredentials(userName: string, password: string) {
-    let payload = JSON.stringify({ userName, password });
-    const encryptedData = CryptoJS.AES.encrypt(payload, environment.secret);
-    return encryptedData;
-}
-```
+- Utiliza algoritmo AES para encriptar credenciales de usuario
+- Emplea clave secreta del entorno para la encriptación
+- Convierte las credenciales a formato JSON antes de encriptar
 
 **Verificación de Token JWT:**
-```typescript
-verifyToken(jwt: string): boolean {
-    let [header, payload, signature] = jwt.split(".");
-    let signInput = `${header}.${payload}`;
-    const hmac = CryptoJS.HmacSHA256(signInput, environment.secret);
-    const computedSignature = CryptoJS.enc.Base64url.stringify(hmac);
-    return computedSignature === signature;
-}
-```
+- Implementa verificación personalizada de tokens JWT
+- Utiliza algoritmo HMAC-SHA256 para validación de firma
+- Compara firmas computadas con las recibidas para autenticación
 
 ## Patrones de Diseño Implementados
 
@@ -264,12 +254,9 @@ verifyToken(jwt: string): boolean {
 - Mejor experiencia de usuario
 
 **Implementación:**
-```typescript
-const routes: Routes = [
-  {path: "layout", loadChildren: ()=>import('./layout/layout.module').then(m=>m.LayoutModule)},
-  {path: "pages", loadChildren: ()=> import('./pages/pages.module').then(m=>m.PagesModule)}
-];
-```
+- Configuración de rutas con lazy loading para módulos principales
+- Carga diferida de LayoutModule y PagesModule
+- Optimización de rendimiento mediante importación dinámica
 
 ### 2. JWT Personalizado vs Estándar
 

@@ -36,8 +36,8 @@ graph LR
 // src/environments/environment.prod.ts
 export const environment = {
   production: true,
-  api_url: "https://silvifrid-gateway.vercel.app",
-  secret: "SILVIA_JULIANA_PROD", // Cambiar en producción
+  api_url: "[API_URL]",
+  secret: "[SECRET_KEY]", // Cambiar en producción
   version: "1.0.0",
   buildDate: new Date().toISOString(),
   enableAnalytics: true,
@@ -51,39 +51,12 @@ export const environment = {
 
 #### Configuración Angular.json para Producción
 
-```json
-{
-  "configurations": {
-    "production": {
-      "fileReplacements": [
-        {
-          "replace": "src/environments/environment.ts",
-          "with": "src/environments/environment.prod.ts"
-        }
-      ],
-      "optimization": true,
-      "outputHashing": "all",
-      "sourceMap": false,
-      "namedChunks": false,
-      "extractLicenses": true,
-      "vendorChunk": false,
-      "buildOptimizer": true,
-      "budgets": [
-        {
-          "type": "initial",
-          "maximumWarning": "2mb",
-          "maximumError": "5mb"
-        },
-        {
-          "type": "anyComponentStyle",
-          "maximumWarning": "6kb",
-          "maximumError": "10kb"
-        }
-      ]
-    }
-  }
-}
-```
+La configuración de producción en angular.json incluye:
+- Reemplazo de archivos de entorno (development → production)
+- Optimización y minificación de código
+- Hashing de archivos de salida para cache busting
+- Configuración de budgets para control de tamaño
+- Extracción de licencias y optimización de chunks
 
 ### 3. Script de Build Optimizado
 

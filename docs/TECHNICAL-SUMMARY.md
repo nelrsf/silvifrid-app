@@ -118,7 +118,7 @@ silvifrid-admin/
 ### Configuración de Entornos
 
 - **Desarrollo**: `http://localhost:4000`
-- **Producción**: `https://silvifrid-gateway.vercel.app`
+- **Producción**: `[API_URL]`
 
 ### Formato de Comunicación
 

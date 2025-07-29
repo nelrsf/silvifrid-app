@@ -69,8 +69,12 @@ export class ProductViewComponent implements OnInit, OnDestroy {
     return image.url;
   }
 
-  private getDefaultImageUrl(): string {
+  public getDefaultImageUrl(): string {
     return 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjQwMCIgdmlld0JveD0iMCAwIDQwMCA0MDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSI0MDAiIGhlaWdodD0iNDAwIiBmaWxsPSIjZjhGOWZhIi8+CjxwYXRoIGQ9Ik0yMDAgMTUwQzIyNy42MTQgMTUwIDI1MCA3Mi4zODU5IDI1MCAyMDBDMjUwIDIyNy42MTQgMjI3LjYxNCAyNTAgMjAwIDI1MEMxNzIuMzg2IDI1MCAxNTAgMjI3LjYxNCAxNTAgMjAwQzE1MCAxNzIuMzg2IDE3Mi4zODYgMTUwIDIwMCAxNTBaIiBmaWxsPSIjNjc3NTg5Ii8+CjxwYXRoIGQ9Ik0xMDAgMTAwSDMwMEMzMDUuNTIzIDEwMCAzMTAgMTA0LjQ3NyAzMTAgMTEwVjI5MEMzMTAgMjk1LjUyMyAzMDUuNTIzIDMwMCAzMDAgMzAwSDEwMEM5NC40NzcyIDMwMCA5MCAyOTUuNTIzIDkwIDI5MFYxMTBDOTAgMTA0LjQ3NyA5NC40NzcyIDEwMCAxMDAgMTAwWiIgc3Ryb2tlPSIjNjc3NTg5IiBzdHJva2Utd2lkdGg9IjIwIiBmaWxsPSJub25lIi8+Cjwvc3ZnPg==';
+  }
+
+  onImageError(event: any): void {
+    event.target.src = this.getDefaultImageUrl();
   }
 
   formatPrice(price: number): string {

@@ -25,7 +25,7 @@
             [src]="getImageUrl(selectedImage)" 
             [alt]="product.name"
             class="main-image img-fluid rounded"
-            onerror="this.src=getDefaultImageUrl()">
+            (error)="onImageError($event)">
           
           <!-- Share and Favorite buttons -->
           <div class="image-actions">
@@ -48,7 +48,7 @@
                 class="thumbnail-image img-fluid rounded"
                 [class.active]="selectedImage?.id === image.id"
                 (click)="selectImage(image)"
-                onerror="this.src=getDefaultImageUrl()">
+                (error)="onImageError($event)">
             </div>
           </div>
         </div>

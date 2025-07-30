@@ -71,11 +71,11 @@
           "builder": "@angular-devkit/build-angular:dev-server",
           "configurations": {
             "production": {
-              "browserTarget": "silvifrid-admin:build:production"
+              "buildTarget": "silvifrid-admin:build:production"
             },
             "development": {
-              "browserTarget": "silvifrid-admin:build:development",
-              "port": 4300
+              "port": 4300,
+              "buildTarget": "silvifrid-admin:build:development"
             }
           },
           "defaultConfiguration": "development"
@@ -83,7 +83,7 @@
         "extract-i18n": {
           "builder": "@angular-devkit/build-angular:extract-i18n",
           "options": {
-            "browserTarget": "silvifrid-admin:build"
+            "buildTarget": "silvifrid-admin:build"
           }
         },
         "test": {

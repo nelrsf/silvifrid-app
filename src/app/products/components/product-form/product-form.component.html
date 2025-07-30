@@ -61,6 +61,22 @@
                   </div>
                 </div>
 
+                <!-- Stock Quantity -->
+                <div class="mb-3">
+                  <label for="stockQuantity" class="form-label">Cantidad en Stock *</label>
+                  <input 
+                    type="number" 
+                    class="form-control"
+                    [class.is-invalid]="isFieldInvalid('stockQuantity')"
+                    id="stockQuantity" 
+                    formControlName="stockQuantity"
+                    placeholder="10"
+                    min="0">
+                  <div *ngIf="isFieldInvalid('stockQuantity')" class="invalid-feedback">
+                    {{ getFieldError('stockQuantity') }}
+                  </div>
+                </div>
+
                 <!-- Description -->
                 <div class="mb-3">
                   <label for="description" class="form-label">Descripción *</label>
@@ -98,6 +114,34 @@
                     (change)="onImageFileSelected($event)">
                   <div class="form-text">
                     Formatos: JPEG, PNG, GIF, WebP. Máximo 5MB por imagen.
+                  </div>
+                </div>
+
+                <!-- Preview of Selected Images (not yet saved) -->
+                <div *ngIf="previewImages.length > 0" class="mb-3">
+                  <label class="form-label">Vista Previa de Nuevas Imágenes</label>
+                  <div class="row g-2">
+                    <div *ngFor="let preview of previewImages; let i = index" class="col-6 col-lg-4">
+                      <div class="image-card">
+                        <img 
+                          [src]="preview.url" 
+                          [alt]="'Vista previa de imagen'"
+                          class="img-fluid rounded"
+                          style="width: 100%; height: 120px; object-fit: cover;">
+                        
+                        <div class="image-overlay">
+                          <div class="image-actions">
+                            <button 
+                              type="button"
+                              class="btn btn-sm btn-outline-danger"
+                              (click)="removePreviewImage(i)"
+                              title="Eliminar vista previa">
+                              <i class="fas fa-trash"></i>
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </div>
 
@@ -143,7 +187,7 @@
                 </div>
 
                 <!-- No images message -->
-                <div *ngIf="images.length === 0" class="alert alert-warning">
+                <div *ngIf="images.length === 0 && previewImages.length === 0" class="alert alert-warning">
                   <i class="fas fa-exclamation-triangle"></i>
                   <strong>Atención:</strong> Debe agregar al menos una imagen del producto.
                 </div>
@@ -164,7 +208,7 @@
                   <button 
                     type="submit" 
                     class="btn btn-primary"
-                    [disabled]="productForm.invalid || images.length === 0 || isSaving">
+                    [disabled]="productForm.invalid || (images.length === 0 && previewImages.length === 0) || isSaving">
                     <span *ngIf="isSaving" class="spinner-border spinner-border-sm me-2" role="status"></span>
                     <i *ngIf="!isSaving" class="fas fa-save"></i>
                     {{ isEditMode ? 'Actualizar' : 'Crear' }} Producto

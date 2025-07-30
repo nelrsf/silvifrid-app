@@ -21,6 +21,7 @@ export class ProductFormComponent implements OnInit, OnDestroy {
   currentProduct: Product | null = null;
   
   images: ProductImage[] = [];
+  previewImages: { file: File, url: string }[] = [];
   private subscription: Subscription = new Subscription();
 
   constructor(
@@ -49,6 +50,7 @@ export class ProductFormComponent implements OnInit, OnDestroy {
     this.productForm = this.fb.group({
       name: ['', [Validators.required, Validators.minLength(3), Validators.maxLength(100)]],
       price: [0, [Validators.required, Validators.min(1)]],
+      stockQuantity: [0, [Validators.required, Validators.min(0)]],
       description: ['', [Validators.required, Validators.minLength(10), Validators.maxLength(1000)]]
     });
   }
@@ -61,6 +63,7 @@ export class ProductFormComponent implements OnInit, OnDestroy {
       this.productForm.patchValue({
         name: this.currentProduct.name,
         price: this.currentProduct.price,
+        stockQuantity: this.currentProduct.stockQuantity,
         description: this.currentProduct.description
       });
       this.images = [...this.currentProduct.images];
@@ -79,13 +82,31 @@ export class ProductFormComponent implements OnInit, OnDestroy {
   onImageFileSelected(event: any): void {
     const files = event.target.files;
     if (files && files.length > 0) {
+      // Clear previous previews
+      this.previewImages = [];
+      
       for (let i = 0; i < files.length; i++) {
         const file = files[i];
         if (this.isValidImageFile(file)) {
-          this.processImageFile(file);
+          this.createPreviewImage(file);
         }
       }
     }
+  }
+
+  private createPreviewImage(file: File): void {
+    const reader = new FileReader();
+    reader.onload = (e: any) => {
+      this.previewImages.push({
+        file: file,
+        url: e.target.result
+      });
+    };
+    reader.readAsDataURL(file);
+  }
+
+  removePreviewImage(index: number): void {
+    this.previewImages.splice(index, 1);
   }
 
   private isValidImageFile(file: File): boolean {
@@ -166,45 +187,48 @@ export class ProductFormComponent implements OnInit, OnDestroy {
   }
 
   onSubmit(): void {
-    if (this.productForm.valid && this.images.length > 0) {
+    if (this.productForm.valid && (this.images.length > 0 || this.previewImages.length > 0)) {
       this.isSaving = true;
       
-      const productData = {
-        ...this.productForm.value,
-        images: this.images
-      };
+      // Process preview images first
+      this.processPreviewImages().then(() => {
+        const productData = {
+          ...this.productForm.value,
+          images: this.images
+        };
 
-      const operation = this.isEditMode && this.productId
-        ? this.productService.updateProduct(this.productId, productData)
-        : this.productService.createProduct(productData);
+        const operation = this.isEditMode && this.productId
+          ? this.productService.updateProduct(this.productId, productData)
+          : this.productService.createProduct(productData);
 
-      this.subscription.add(
-        operation.subscribe({
-          next: (product) => {
-            const message = this.isEditMode ? 'actualizado' : 'creado';
-            Swal.fire({
-              icon: 'success',
-              title: 'Éxito',
-              text: `Producto ${message} exitosamente`,
-              timer: 2000
-            }).then(() => {
-              this.router.navigate(['/products']);
-            });
-          },
-          error: (error) => {
-            console.error('Error saving product:', error);
-            this.isSaving = false;
-            Swal.fire({
-              icon: 'error',
-              title: 'Error',
-              text: 'Error al guardar el producto'
-            });
-          }
-        })
-      );
+        this.subscription.add(
+          operation.subscribe({
+            next: (product) => {
+              const message = this.isEditMode ? 'actualizado' : 'creado';
+              Swal.fire({
+                icon: 'success',
+                title: 'Éxito',
+                text: `Producto ${message} exitosamente`,
+                timer: 2000
+              }).then(() => {
+                this.router.navigate(['/products']);
+              });
+            },
+            error: (error) => {
+              console.error('Error saving product:', error);
+              this.isSaving = false;
+              Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: 'Error al guardar el producto'
+              });
+            }
+          })
+        );
+      });
     } else {
       this.markFormGroupTouched();
-      if (this.images.length === 0) {
+      if (this.images.length === 0 && this.previewImages.length === 0) {
         Swal.fire({
           icon: 'warning',
           title: 'Imagen requerida',
@@ -212,6 +236,29 @@ export class ProductFormComponent implements OnInit, OnDestroy {
         });
       }
     }
+  }
+
+  private async processPreviewImages(): Promise<void> {
+    for (const preview of this.previewImages) {
+      try {
+        const imageId = await this.productService.saveImageToStorage(preview.file);
+        const newImage: ProductImage = {
+          id: imageId,
+          url: imageId,
+          isMain: this.images.length === 0,
+          file: preview.file
+        };
+        
+        if (newImage.isMain) {
+          this.images.forEach(img => img.isMain = false);
+        }
+        
+        this.images.push(newImage);
+      } catch (error) {
+        console.error('Error processing preview image:', error);
+      }
+    }
+    this.previewImages = [];
   }
 
   private markFormGroupTouched(): void {

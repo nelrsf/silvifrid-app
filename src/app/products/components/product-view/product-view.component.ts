@@ -15,7 +15,6 @@ export class ProductViewComponent implements OnInit, OnDestroy {
   product: Product | null = null;
   isLoading = true;
   selectedImage: ProductImage | null = null;
-  quantity = 1;
   
   private subscription: Subscription = new Subscription();
 
@@ -84,28 +83,6 @@ export class ProductViewComponent implements OnInit, OnDestroy {
       currency: 'COP',
       minimumFractionDigits: 0
     }).format(price);
-  }
-
-  increaseQuantity(): void {
-    this.quantity++;
-  }
-
-  decreaseQuantity(): void {
-    if (this.quantity > 1) {
-      this.quantity--;
-    }
-  }
-
-  addToCart(): void {
-    if (this.product) {
-      Swal.fire({
-        icon: 'success',
-        title: 'Agregado al carrito',
-        text: `${this.quantity} x ${this.product.name} agregado al carrito`,
-        timer: 2000,
-        showConfirmButton: false
-      });
-    }
   }
 
   editProduct(): void {

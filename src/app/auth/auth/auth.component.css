@@ -1,9 +1,8 @@
 @charset "UTF-8";
-@import url(https://fonts.googleapis.com/css?family=Open+Sans:300,400,700);
-@import url('http://fonts.cdnfonts.com/css/brittany-signature');
+/* External fonts removed to prevent build issues - using system fonts instead */
 
 .company-name {
-    font-family: 'Brittany Signature', sans-serif;
+    font-family: 'Lucida Handwriting', 'Brush Script MT', cursive;
     white-space: nowrap;
 }
 

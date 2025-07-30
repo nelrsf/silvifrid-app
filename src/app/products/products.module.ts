@@ -12,27 +12,19 @@ import { AuthGuard } from '../helpers/Auth.Guard';
 const routes: Routes = [
   {
     path: 'list',
-    component: ProductListComponent,
-    canActivate: [AuthGuard],
-    data: { permission: 'products' }
+    component: ProductListComponent
   },
   {
     path: 'create',
-    component: ProductFormComponent,
-    canActivate: [AuthGuard],
-    data: { permission: 'products' }
+    component: ProductFormComponent
   },
   {
     path: 'edit/:id',
-    component: ProductFormComponent,
-    canActivate: [AuthGuard],
-    data: { permission: 'products' }
+    component: ProductFormComponent
   },
   {
     path: 'view/:id',
-    component: ProductViewComponent,
-    canActivate: [AuthGuard],
-    data: { permission: 'products' }
+    component: ProductViewComponent
   },
   {
     path: '',

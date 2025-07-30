@@ -11,6 +11,7 @@ export class Product {
   private _name!: string;
   private _price!: number;
   private _description!: string;
+  private _stockQuantity!: number;
   private _images!: ProductImage[];
   private _createdAt!: Date;
   private _updatedAt!: Date;
@@ -19,6 +20,7 @@ export class Product {
     this._id = this.generateId();
     this._code = this.generateCode();
     this._images = [];
+    this._stockQuantity = 0;
     this._createdAt = new Date();
     this._updatedAt = new Date();
   }
@@ -58,6 +60,14 @@ export class Product {
   }
   public set description(value: string) {
     this._description = value;
+    this._updatedAt = new Date();
+  }
+
+  public get stockQuantity(): number {
+    return this._stockQuantity;
+  }
+  public set stockQuantity(value: number) {
+    this._stockQuantity = value;
     this._updatedAt = new Date();
   }
 
@@ -152,6 +162,7 @@ export class Product {
     product._name = json._name || json.name;
     product._price = json._price || json.price;
     product._description = json._description || json.description;
+    product._stockQuantity = json._stockQuantity || json.stockQuantity || 0;
     product._images = json._images || json.images || [];
     product._createdAt = new Date(json._createdAt || json.createdAt);
     product._updatedAt = new Date(json._updatedAt || json.updatedAt);
@@ -165,6 +176,7 @@ export class Product {
       name: this._name,
       price: this._price,
       description: this._description,
+      stockQuantity: this._stockQuantity,
       images: this._images,
       createdAt: this._createdAt,
       updatedAt: this._updatedAt

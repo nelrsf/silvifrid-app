@@ -70,4 +70,17 @@ export class AuthComponent implements OnInit {
 
   }
 
+  enterDemoMode() {
+    // Create a demo user for testing
+    const demoUser = new AdmUser();
+    demoUser.id = 'demo';
+    demoUser.userName = 'demo';
+    demoUser.name = 'Demo User';
+    
+    // Set a demo token in localStorage
+    localStorage.setItem("token", "demo-token");
+    this.authService.userSubject.next(demoUser);
+    this.router.navigate(['/layout/menu']);
+  }
+
 }

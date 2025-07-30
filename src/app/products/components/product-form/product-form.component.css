@@ -1,3 +1,7 @@
+.container-fluid {
+  padding: 1rem !important;
+}
+
 .image-card {
   position: relative;
   border-radius: 8px;

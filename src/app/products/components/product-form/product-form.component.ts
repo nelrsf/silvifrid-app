@@ -5,6 +5,7 @@ import { Subscription } from 'rxjs';
 import { Product, ProductImage } from '../../../model/product';
 import { ProductService } from '../../../services/product.service';
 import Swal from 'sweetalert2';
+import { faBox, faInfoCircle, faImages, faTrash, faStar, faExclamationTriangle, faTimes, faSave } from '@fortawesome/free-solid-svg-icons';
 
 @Component({
     selector: 'app-product-form',
@@ -21,7 +22,18 @@ export class ProductFormComponent implements OnInit, OnDestroy {
   currentProduct: Product | null = null;
   
   images: ProductImage[] = [];
+  previewImages: { file: File, url: string, isMain: boolean }[] = [];
   private subscription: Subscription = new Subscription();
+
+  // FontAwesome icons
+  faBox = faBox;
+  faInfoCircle = faInfoCircle;
+  faImages = faImages;
+  faTrash = faTrash;
+  faStar = faStar;
+  faExclamationTriangle = faExclamationTriangle;
+  faTimes = faTimes;
+  faSave = faSave;
 
   constructor(
     private fb: FormBuilder,
@@ -49,6 +61,7 @@ export class ProductFormComponent implements OnInit, OnDestroy {
     this.productForm = this.fb.group({
       name: ['', [Validators.required, Validators.minLength(3), Validators.maxLength(100)]],
       price: [0, [Validators.required, Validators.min(1)]],
+      stockQuantity: [0, [Validators.required, Validators.min(0)]],
       description: ['', [Validators.required, Validators.minLength(10), Validators.maxLength(1000)]]
     });
   }
@@ -61,6 +74,7 @@ export class ProductFormComponent implements OnInit, OnDestroy {
       this.productForm.patchValue({
         name: this.currentProduct.name,
         price: this.currentProduct.price,
+        stockQuantity: this.currentProduct.stockQuantity,
         description: this.currentProduct.description
       });
       this.images = [...this.currentProduct.images];
@@ -81,11 +95,73 @@ export class ProductFormComponent implements OnInit, OnDestroy {
     if (files && files.length > 0) {
       for (let i = 0; i < files.length; i++) {
         const file = files[i];
-        if (this.isValidImageFile(file)) {
-          this.processImageFile(file);
+        if (this.isValidImageFile(file) && !this.isDuplicateImage(file)) {
+          this.createPreviewImage(file);
         }
       }
     }
+  }
+
+  private isDuplicateImage(file: File): boolean {
+    // Check if image already exists in preview images
+    const isDuplicateInPreview = this.previewImages.some(preview => 
+      preview.file.name === file.name && 
+      preview.file.size === file.size &&
+      preview.file.type === file.type
+    );
+
+    if (isDuplicateInPreview) {
+      Swal.fire({
+        icon: 'warning',
+        title: 'Imagen duplicada',
+        text: `La imagen "${file.name}" ya ha sido seleccionada`
+      });
+      return true;
+    }
+
+    // Check if image already exists in current images
+    const isDuplicateInCurrent = this.images.some(image => 
+      image.file && 
+      image.file.name === file.name && 
+      image.file.size === file.size &&
+      image.file.type === file.type
+    );
+
+    if (isDuplicateInCurrent) {
+      Swal.fire({
+        icon: 'warning',
+        title: 'Imagen duplicada',
+        text: `La imagen "${file.name}" ya existe en el producto`
+      });
+      return true;
+    }
+
+    return false;
+  }
+
+  private createPreviewImage(file: File): void {
+    const reader = new FileReader();
+    reader.onload = (e: any) => {
+      this.previewImages.push({
+        file: file,
+        url: e.target.result,
+        isMain: this.images.length === 0 && this.previewImages.length === 0 // First image overall is main
+      });
+    };
+    reader.readAsDataURL(file);
+  }
+
+  removePreviewImage(index: number): void {
+    this.previewImages.splice(index, 1);
+  }
+
+  setMainPreviewImage(index: number): void {
+    // Unset main for all existing images and preview images
+    this.images.forEach(img => img.isMain = false);
+    this.previewImages.forEach(preview => preview.isMain = false);
+    
+    // Set the selected preview image as main
+    this.previewImages[index].isMain = true;
   }
 
   private isValidImageFile(file: File): boolean {
@@ -140,6 +216,8 @@ export class ProductFormComponent implements OnInit, OnDestroy {
   }
 
   setMainImage(imageId: string): void {
+    // Unset main for all preview images
+    this.previewImages.forEach(preview => preview.isMain = false);
     this.images.forEach(img => {
       img.isMain = img.id === imageId;
     });
@@ -166,45 +244,48 @@ export class ProductFormComponent implements OnInit, OnDestroy {
   }
 
   onSubmit(): void {
-    if (this.productForm.valid && this.images.length > 0) {
+    if (this.productForm.valid && (this.images.length > 0 || this.previewImages.length > 0)) {
       this.isSaving = true;
       
-      const productData = {
-        ...this.productForm.value,
-        images: this.images
-      };
+      // Process preview images first
+      this.processPreviewImages().then(() => {
+        const productData = {
+          ...this.productForm.value,
+          images: this.images
+        };
 
-      const operation = this.isEditMode && this.productId
-        ? this.productService.updateProduct(this.productId, productData)
-        : this.productService.createProduct(productData);
+        const operation = this.isEditMode && this.productId
+          ? this.productService.updateProduct(this.productId, productData)
+          : this.productService.createProduct(productData);
 
-      this.subscription.add(
-        operation.subscribe({
-          next: (product) => {
-            const message = this.isEditMode ? 'actualizado' : 'creado';
-            Swal.fire({
-              icon: 'success',
-              title: 'Éxito',
-              text: `Producto ${message} exitosamente`,
-              timer: 2000
-            }).then(() => {
-              this.router.navigate(['/products']);
-            });
-          },
-          error: (error) => {
-            console.error('Error saving product:', error);
-            this.isSaving = false;
-            Swal.fire({
-              icon: 'error',
-              title: 'Error',
-              text: 'Error al guardar el producto'
-            });
-          }
-        })
-      );
+        this.subscription.add(
+          operation.subscribe({
+            next: (product) => {
+              const message = this.isEditMode ? 'actualizado' : 'creado';
+              Swal.fire({
+                icon: 'success',
+                title: 'Éxito',
+                text: `Producto ${message} exitosamente`,
+                timer: 2000
+              }).then(() => {
+                this.router.navigate(['/products']);
+              });
+            },
+            error: (error) => {
+              console.error('Error saving product:', error);
+              this.isSaving = false;
+              Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: 'Error al guardar el producto'
+              });
+            }
+          })
+        );
+      });
     } else {
       this.markFormGroupTouched();
-      if (this.images.length === 0) {
+      if (this.images.length === 0 && this.previewImages.length === 0) {
         Swal.fire({
           icon: 'warning',
           title: 'Imagen requerida',
@@ -212,6 +293,29 @@ export class ProductFormComponent implements OnInit, OnDestroy {
         });
       }
     }
+  }
+
+  private async processPreviewImages(): Promise<void> {
+    for (const preview of this.previewImages) {
+      try {
+        const imageId = await this.productService.saveImageToStorage(preview.file);
+        const newImage: ProductImage = {
+          id: imageId,
+          url: imageId,
+          isMain: preview.isMain || (this.images.length === 0 && this.previewImages.indexOf(preview) === 0),
+          file: preview.file
+        };
+        
+        if (newImage.isMain) {
+          this.images.forEach(img => img.isMain = false);
+        }
+        
+        this.images.push(newImage);
+      } catch (error) {
+        console.error('Error processing preview image:', error);
+      }
+    }
+    this.previewImages = [];
   }
 
   private markFormGroupTouched(): void {

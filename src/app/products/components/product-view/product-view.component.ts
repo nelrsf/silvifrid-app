@@ -1,8 +1,9 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { Subscription } from 'rxjs';
-import { Product, ProductImage } from '../../../model/product';
+import { Product } from '../../../model/product';
 import { ProductService } from '../../../services/product.service';
+import { PermissionService } from '../../../services/permission.service';
 import Swal from 'sweetalert2';
 
 @Component({
@@ -14,17 +15,29 @@ import Swal from 'sweetalert2';
 export class ProductViewComponent implements OnInit, OnDestroy {
   product: Product | null = null;
   isLoading = true;
-  selectedImage: ProductImage | null = null;
+  selectedImageIndex: number = 0;
   
   private subscription: Subscription = new Subscription();
 
   constructor(
     private route: ActivatedRoute,
     private router: Router,
-    private productService: ProductService
+    private productService: ProductService,
+    private permissionService: PermissionService
   ) { }
 
   ngOnInit(): void {
+    if (!this.permissionService.canViewProducts()) {
+      Swal.fire({
+        icon: 'error',
+        title: 'Sin permisos',
+        text: 'No tiene permisos para ver productos'
+      }).then(() => {
+        this.router.navigate(['/products']);
+      });
+      return;
+    }
+
     const productId = this.route.snapshot.paramMap.get('id');
     if (productId) {
       this.loadProduct(productId);
@@ -39,34 +52,44 @@ export class ProductViewComponent implements OnInit, OnDestroy {
 
   private loadProduct(id: string): void {
     this.isLoading = true;
-    this.product = this.productService.getProductById(id) || null;
-    
-    if (this.product) {
-      this.selectedImage = this.product.mainImage || null;
-      this.isLoading = false;
-    } else {
-      Swal.fire({
-        icon: 'error',
-        title: 'Error',
-        text: 'Producto no encontrado'
-      }).then(() => {
-        this.router.navigate(['/products']);
-      });
-    }
+    this.subscription.add(
+      this.productService.getProductById(id).subscribe({
+        next: (product) => {
+          this.product = product;
+          this.selectedImageIndex = 0;
+          this.isLoading = false;
+        },
+        error: (error) => {
+          console.error('Error loading product:', error);
+          this.isLoading = false;
+          Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: 'Producto no encontrado'
+          }).then(() => {
+            this.router.navigate(['/products']);
+          });
+        }
+      })
+    );
   }
 
-  selectImage(image: ProductImage): void {
-    this.selectedImage = image;
+  selectImage(index: number): void {
+    this.selectedImageIndex = index;
   }
 
-  getImageUrl(image: ProductImage | null): string {
-    if (!image) return this.getDefaultImageUrl();
-    
-    if (image.url.startsWith('img_')) {
-      const url = this.productService.getImageUrl(image.url);
-      return url || this.getDefaultImageUrl();
+  getMainImageUrl(): string {
+    if (!this.product || !this.product.images || this.product.images.length === 0) {
+      return this.getDefaultImageUrl();
     }
-    return image.url;
+    return this.product.images[this.selectedImageIndex] || this.getDefaultImageUrl();
+  }
+
+  getSecondaryImages(): string[] {
+    if (!this.product || !this.product.images) {
+      return [];
+    }
+    return this.product.images;
   }
 
   public getDefaultImageUrl(): string {
@@ -86,12 +109,30 @@ export class ProductViewComponent implements OnInit, OnDestroy {
   }
 
   editProduct(): void {
-    if (this.product) {
-      this.router.navigate(['/products/edit', this.product.id]);
+    if (!this.permissionService.canEditProducts()) {
+      Swal.fire({
+        icon: 'error',
+        title: 'Sin permisos',
+        text: 'No tiene permisos para editar productos'
+      });
+      return;
+    }
+
+    if (this.product && this.product._id) {
+      this.router.navigate(['/products/edit', this.product._id]);
     }
   }
 
   deleteProduct(): void {
+    if (!this.permissionService.canDeleteProducts()) {
+      Swal.fire({
+        icon: 'error',
+        title: 'Sin permisos',
+        text: 'No tiene permisos para eliminar productos'
+      });
+      return;
+    }
+
     if (!this.product) return;
 
     Swal.fire({
@@ -104,25 +145,27 @@ export class ProductViewComponent implements OnInit, OnDestroy {
       confirmButtonText: 'Sí, eliminar',
       cancelButtonText: 'Cancelar'
     }).then((result) => {
-      if (result.isConfirmed && this.product) {
+      if (result.isConfirmed && this.product && this.product._id) {
         this.subscription.add(
-          this.productService.deleteProduct(this.product.id).subscribe({
-            next: () => {
-              Swal.fire({
-                icon: 'success',
-                title: 'Eliminado',
-                text: 'El producto ha sido eliminado exitosamente',
-                timer: 2000
-              }).then(() => {
-                this.router.navigate(['/products']);
-              });
+          this.productService.deleteProduct(this.product._id).subscribe({
+            next: (result) => {
+              if (result.success) {
+                Swal.fire({
+                  icon: 'success',
+                  title: 'Eliminado',
+                  text: 'El producto ha sido eliminado exitosamente',
+                  timer: 2000
+                }).then(() => {
+                  this.router.navigate(['/products']);
+                });
+              }
             },
             error: (error) => {
               console.error('Error deleting product:', error);
               Swal.fire({
                 icon: 'error',
                 title: 'Error',
-                text: 'Error al eliminar el producto'
+                text: error || 'Error al eliminar el producto'
               });
             }
           })
@@ -133,5 +176,14 @@ export class ProductViewComponent implements OnInit, OnDestroy {
 
   goBack(): void {
     this.router.navigate(['/products']);
+  }
+
+  // Permission checks for template
+  canEditProducts(): boolean {
+    return this.permissionService.canEditProducts();
+  }
+
+  canDeleteProducts(): boolean {
+    return this.permissionService.canDeleteProducts();
   }
 }

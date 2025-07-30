@@ -22,32 +22,27 @@
         <!-- Main Image -->
         <div class="main-image-container mb-3">
           <img 
-            [src]="getImageUrl(selectedImage)" 
+            [src]="getMainImageUrl()" 
             [alt]="product.name"
             class="main-image img-fluid rounded"
             (error)="onImageError($event)">
           
-          <!-- Share and Favorite buttons -->
-          <div class="image-actions">
-            <button class="btn btn-light btn-sm rounded-circle" title="Compartir">
-              <i class="fas fa-share-alt"></i>
-            </button>
-            <button class="btn btn-light btn-sm rounded-circle" title="Favorito">
-              <i class="far fa-heart"></i>
-            </button>
+          <!-- Image indicator -->
+          <div class="image-indicator" *ngIf="product.images.length > 1">
+            <span class="badge bg-dark">{{ selectedImageIndex + 1 }} / {{ product.images.length }}</span>
           </div>
         </div>
 
         <!-- Thumbnail Gallery -->
         <div *ngIf="product.images.length > 1" class="thumbnail-gallery">
           <div class="row g-2">
-            <div *ngFor="let image of product.images" class="col-3">
+            <div *ngFor="let imageUrl of getSecondaryImages(); let i = index" class="col-3">
               <img 
-                [src]="getImageUrl(image)" 
-                [alt]="product.name + ' - imagen'"
+                [src]="imageUrl" 
+                [alt]="product.name + ' - imagen ' + (i + 1)"
                 class="thumbnail-image img-fluid rounded"
-                [class.active]="selectedImage?.id === image.id"
-                (click)="selectImage(image)"
+                [class.active]="selectedImageIndex === i"
+                (click)="selectImage(i)"
                 (error)="onImageError($event)">
             </div>
           </div>
@@ -62,23 +57,22 @@
         <div class="mb-3">
           <div class="d-flex justify-content-between align-items-start mb-2">
             <div>
-              <span class="badge bg-secondary mb-2">CÓD. {{ product.code }}</span>
               <h1 class="product-title">{{ product.name }}</h1>
             </div>
             <!-- Admin actions -->
-            <div class="dropdown">
+            <div class="dropdown" *ngIf="canEditProducts() || canDeleteProducts()">
               <button class="btn btn-outline-secondary btn-sm dropdown-toggle" 
                       type="button" 
                       data-bs-toggle="dropdown">
                 <i class="fas fa-cog"></i>
               </button>
               <ul class="dropdown-menu">
-                <li>
+                <li *ngIf="canEditProducts()">
                   <a class="dropdown-item" (click)="editProduct()">
                     <i class="fas fa-edit"></i> Editar
                   </a>
                 </li>
-                <li>
+                <li *ngIf="canDeleteProducts()">
                   <a class="dropdown-item text-danger" (click)="deleteProduct()">
                     <i class="fas fa-trash"></i> Eliminar
                   </a>
@@ -88,18 +82,32 @@
           </div>
         </div>
 
-        <!-- Price -->
+        <!-- Prices -->
         <div class="mb-4">
           <div class="price-container">
-            <span class="current-price">{{ formatPrice(product.price) }}</span>
+            <div class="row">
+              <div class="col-6">
+                <label class="form-label fw-bold text-muted">PRECIO BASE</label>
+                <div class="current-price text-success">{{ formatPrice(product.price) }}</div>
+              </div>
+              <div class="col-6">
+                <label class="form-label fw-bold text-muted">PRECIO EXTENDIDO</label>
+                <div class="extended-price text-info">{{ formatPrice(product.extendedPrice) }}</div>
+              </div>
+            </div>
           </div>
         </div>
 
         <!-- Stock Quantity Display -->
         <div class="mb-4">
-          <label class="form-label fw-bold">CANTIDAD EN STOCK</label>
+          <label class="form-label fw-bold">STOCK DISPONIBLE</label>
           <div class="stock-display">
-            <span class="stock-quantity">{{ product.stockQuantity }} unidades</span>
+            <span class="badge fs-6"
+                  [class.bg-success]="product.stock > 10"
+                  [class.bg-warning]="product.stock > 0 && product.stock <= 10"
+                  [class.bg-danger]="product.stock === 0">
+              {{ product.stock }} unidades disponibles
+            </span>
           </div>
         </div>
 
@@ -111,22 +119,20 @@
           </div>
         </div>
 
-        <!-- Product Metadata -->
-        <div class="product-metadata">
-          <div class="row">
-            <div class="col-6">
-              <small class="text-muted">
-                <strong>Creado:</strong><br>
-                {{ product.createdAt | date:'medium' }}
-              </small>
-            </div>
-            <div class="col-6">
-              <small class="text-muted">
-                <strong>Actualizado:</strong><br>
-                {{ product.updatedAt | date:'medium' }}
-              </small>
-            </div>
+        <!-- Product Images Info -->
+        <div class="mb-4" *ngIf="product.images.length > 0">
+          <h6 class="section-title">IMÁGENES DEL PRODUCTO</h6>
+          <div class="images-info">
+            <span class="badge bg-primary">{{ product.images.length }} imagen(es)</span>
+            <small class="text-muted ms-2">La primera imagen es la imagen principal</small>
           </div>
+        </div>
+
+        <!-- Product ID for reference -->
+        <div class="product-metadata">
+          <small class="text-muted">
+            <strong>ID del Producto:</strong> {{ product._id }}
+          </small>
         </div>
       </div>
     </div>

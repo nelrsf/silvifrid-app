@@ -1,211 +1,190 @@
 import { Injectable } from '@angular/core';
-import { BehaviorSubject, Observable } from 'rxjs';
-import { Product, ProductImage } from '../model/product';
+import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { BehaviorSubject, Observable, throwError } from 'rxjs';
+import { catchError, tap } from 'rxjs/operators';
+import { Product, ProductCreateDto, ProductUpdateDto } from '../model/product';
+import { PermissionService } from './permission.service';
+import { environment } from '../../environments/environment';
 
 @Injectable({
   providedIn: 'root'
 })
 export class ProductService {
-  private readonly STORAGE_KEY = 'silvifrid_products';
-  private readonly IMAGE_STORAGE_KEY = 'silvifrid_product_images';
   
   private productsSubject = new BehaviorSubject<Product[]>([]);
   public products$ = this.productsSubject.asObservable();
 
-  constructor() {
-    this.loadProducts();
-  }
+  constructor(
+    private http: HttpClient,
+    private permissionService: PermissionService
+  ) { }
 
-  private loadProducts(): void {
-    try {
-      const storedProducts = localStorage.getItem(this.STORAGE_KEY);
-      if (storedProducts) {
-        const productsData = JSON.parse(storedProducts);
-        const products = productsData.map((data: any) => Product.fromJSON(data));
-        this.productsSubject.next(products);
-      }
-    } catch (error) {
-      console.error('Error loading products from localStorage:', error);
-      this.productsSubject.next([]);
-    }
-  }
-
-  private saveProducts(products: Product[]): void {
-    try {
-      const productsData = products.map(product => product.toJSON());
-      localStorage.setItem(this.STORAGE_KEY, JSON.stringify(productsData));
-      this.productsSubject.next(products);
-    } catch (error) {
-      console.error('Error saving products to localStorage:', error);
-    }
-  }
-
+  /**
+   * Get all products from catalog API
+   * GET /getproducts
+   */
   public getProducts(): Observable<Product[]> {
-    return this.products$;
+    if (!this.permissionService.canViewProducts()) {
+      return throwError('Insufficient permissions to view products');
+    }
+
+    return this.http.get<Product[]>(`${environment.api_url}/getproducts`)
+      .pipe(
+        tap(products => this.productsSubject.next(products)),
+        catchError(this.handleError)
+      );
   }
 
-  public getProductById(id: string): Product | undefined {
-    const products = this.productsSubject.getValue();
-    return products.find(product => product.id === id);
+  /**
+   * Get product by ID from catalog API
+   * GET /getproducts/:id
+   */
+  public getProductById(id: string): Observable<Product> {
+    if (!this.permissionService.canViewProducts()) {
+      return throwError('Insufficient permissions to view products');
+    }
+
+    return this.http.get<Product>(`${environment.api_url}/getproducts/${id}`)
+      .pipe(
+        catchError(this.handleError)
+      );
   }
 
-  public createProduct(productData: Partial<Product>): Observable<Product> {
-    return new Observable(observer => {
-      try {
-        const product = new Product();
-        
-        if (productData.name) product.name = productData.name;
-        if (productData.price !== undefined) product.price = productData.price;
-        if (productData.description) product.description = productData.description;
-        if (productData.images) product.images = productData.images;
+  /**
+   * Create new product using catalog API
+   * POST /createproduct
+   * Protected endpoint - requires authentication and create permission
+   */
+  public createProduct(productData: ProductCreateDto): Observable<Product> {
+    if (!this.permissionService.canCreateProducts()) {
+      return throwError('Insufficient permissions to create products');
+    }
 
-        const products = this.productsSubject.getValue();
-        products.push(product);
-        this.saveProducts(products);
-        
-        observer.next(product);
-        observer.complete();
-      } catch (error) {
-        observer.error(error);
-      }
-    });
+    const headers = new HttpHeaders(this.permissionService.getAuthHeaders());
+
+    return this.http.post<Product>(`${environment.api_url}/createproduct`, productData, { headers })
+      .pipe(
+        tap(product => {
+          // Update local products list
+          const currentProducts = this.productsSubject.getValue();
+          this.productsSubject.next([...currentProducts, product]);
+        }),
+        catchError(this.handleError)
+      );
   }
 
-  public updateProduct(id: string, productData: Partial<Product>): Observable<Product> {
-    return new Observable(observer => {
-      try {
-        const products = this.productsSubject.getValue();
-        const productIndex = products.findIndex(p => p.id === id);
-        
-        if (productIndex === -1) {
-          observer.error(new Error('Product not found'));
-          return;
-        }
+  /**
+   * Update existing product
+   * Note: This endpoint needs to be implemented in the backend
+   * PUT /updateproduct/:id or PATCH /updateproduct/:id
+   */
+  public updateProduct(id: string, productData: ProductUpdateDto): Observable<Product> {
+    if (!this.permissionService.canEditProducts()) {
+      return throwError('Insufficient permissions to edit products');
+    }
 
-        const product = products[productIndex];
-        
-        if (productData.name !== undefined) product.name = productData.name;
-        if (productData.price !== undefined) product.price = productData.price;
-        if (productData.description !== undefined) product.description = productData.description;
-        if (productData.images !== undefined) product.images = productData.images;
+    const headers = new HttpHeaders(this.permissionService.getAuthHeaders());
 
-        this.saveProducts(products);
-        
-        observer.next(product);
-        observer.complete();
-      } catch (error) {
-        observer.error(error);
-      }
-    });
+    // This endpoint needs to be implemented in the backend
+    return this.http.put<Product>(`${environment.api_url}/updateproduct/${id}`, productData, { headers })
+      .pipe(
+        tap(updatedProduct => {
+          // Update local products list
+          const currentProducts = this.productsSubject.getValue();
+          const index = currentProducts.findIndex(p => p._id === id);
+          if (index > -1) {
+            currentProducts[index] = updatedProduct;
+            this.productsSubject.next([...currentProducts]);
+          }
+        }),
+        catchError(this.handleError)
+      );
   }
 
-  public deleteProduct(id: string): Observable<boolean> {
-    return new Observable(observer => {
-      try {
-        const products = this.productsSubject.getValue();
-        const productIndex = products.findIndex(p => p.id === id);
-        
-        if (productIndex === -1) {
-          observer.error(new Error('Product not found'));
-          return;
-        }
+  /**
+   * Delete product
+   * Note: This endpoint needs to be implemented in the backend
+   * DELETE /deleteproduct/:id
+   */
+  public deleteProduct(id: string): Observable<{ success: boolean, message?: string }> {
+    if (!this.permissionService.canDeleteProducts()) {
+      return throwError('Insufficient permissions to delete products');
+    }
 
-        // Remove product images from storage
-        const product = products[productIndex];
-        product.images.forEach(image => {
-          this.removeImageFromStorage(image.id);
-        });
+    const headers = new HttpHeaders(this.permissionService.getAuthHeaders());
 
-        products.splice(productIndex, 1);
-        this.saveProducts(products);
-        
-        observer.next(true);
-        observer.complete();
-      } catch (error) {
-        observer.error(error);
-      }
-    });
+    // This endpoint needs to be implemented in the backend
+    return this.http.delete<{ success: boolean, message?: string }>(`${environment.api_url}/deleteproduct/${id}`, { headers })
+      .pipe(
+        tap(result => {
+          if (result.success) {
+            // Update local products list
+            const currentProducts = this.productsSubject.getValue();
+            const filteredProducts = currentProducts.filter(p => p._id !== id);
+            this.productsSubject.next(filteredProducts);
+          }
+        }),
+        catchError(this.handleError)
+      );
   }
 
-  public saveImageToStorage(file: File): Promise<string> {
-    return new Promise((resolve, reject) => {
-      try {
-        const reader = new FileReader();
-        reader.onload = (e) => {
-          const imageData = e.target?.result as string;
-          const imageId = 'img_' + Math.random().toString(36).substr(2, 9) + Date.now();
-          
-          // Store image data in localStorage
-          const images = this.getStoredImages();
-          images[imageId] = {
-            data: imageData,
-            name: file.name,
-            size: file.size,
-            type: file.type,
-            createdAt: new Date().toISOString()
-          };
-          
-          localStorage.setItem(this.IMAGE_STORAGE_KEY, JSON.stringify(images));
-          resolve(imageId);
-        };
-        
-        reader.onerror = () => reject(new Error('Failed to read file'));
-        reader.readAsDataURL(file);
-      } catch (error) {
-        reject(error);
-      }
-    });
+  /**
+   * Refresh products list from API
+   */
+  public refreshProducts(): Observable<Product[]> {
+    return this.getProducts();
   }
 
-  public getImageUrl(imageId: string): string {
-    try {
-      const images = this.getStoredImages();
-      return images[imageId]?.data || '';
-    } catch (error) {
-      console.error('Error retrieving image:', error);
-      return '';
+  /**
+   * Get main image URL for a product
+   * Returns the first image in the array (index 0) as main image
+   */
+  public getMainImageUrl(product: Product): string {
+    return product.images && product.images.length > 0 ? product.images[0] : '';
+  }
+
+  /**
+   * Get secondary images for a product
+   * Returns all images except the first one
+   */
+  public getSecondaryImages(product: Product): string[] {
+    return product.images && product.images.length > 1 ? product.images.slice(1) : [];
+  }
+
+  /**
+   * Check if user has permission for specific product operation
+   */
+  public canPerformOperation(operation: 'view' | 'create' | 'edit' | 'delete'): boolean {
+    switch (operation) {
+      case 'view':
+        return this.permissionService.canViewProducts();
+      case 'create':
+        return this.permissionService.canCreateProducts();
+      case 'edit':
+        return this.permissionService.canEditProducts();
+      case 'delete':
+        return this.permissionService.canDeleteProducts();
+      default:
+        return false;
     }
   }
 
-  private getStoredImages(): any {
-    try {
-      const storedImages = localStorage.getItem(this.IMAGE_STORAGE_KEY);
-      return storedImages ? JSON.parse(storedImages) : {};
-    } catch (error) {
-      console.error('Error parsing stored images:', error);
-      return {};
+  /**
+   * Handle HTTP errors
+   */
+  private handleError = (error: any) => {
+    console.error('ProductService error:', error);
+    
+    if (error.status === 401) {
+      return throwError('Authentication required. Please login.');
+    } else if (error.status === 403) {
+      return throwError('Insufficient permissions to perform this operation.');
+    } else if (error.status === 404) {
+      return throwError('Product not found.');
+    } else if (error.status === 500) {
+      return throwError('Server error. Please try again later.');
     }
-  }
-
-  private removeImageFromStorage(imageId: string): void {
-    try {
-      const images = this.getStoredImages();
-      delete images[imageId];
-      localStorage.setItem(this.IMAGE_STORAGE_KEY, JSON.stringify(images));
-    } catch (error) {
-      console.error('Error removing image from storage:', error);
-    }
-  }
-
-  public clearAllData(): void {
-    localStorage.removeItem(this.STORAGE_KEY);
-    localStorage.removeItem(this.IMAGE_STORAGE_KEY);
-    this.productsSubject.next([]);
-  }
-
-  // Utility method to seed some demo data
-  public seedDemoData(): void {
-    const demoProducts = [
-      {
-        name: "Victoria's Secret Paris Hilton tradicional",
-        price: 22000,
-        description: "Disfruta de la versión tradicional de Paris Hilton, una fragancia clásica que nunca pasa de moda. Con notas de manzana, jazmín y almizle, Paris Hilton Tradicional es ideal para quienes buscan un aroma elegante y atemporal.",
-        images: []
-      }
-    ];
-
-    demoProducts.forEach(productData => {
-      this.createProduct(productData).subscribe();
-    });
+    
+    return throwError(error.message || 'An unexpected error occurred.');
   }
 }

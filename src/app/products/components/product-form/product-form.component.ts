@@ -7,9 +7,10 @@ import { ProductService } from '../../../services/product.service';
 import Swal from 'sweetalert2';
 
 @Component({
-  selector: 'app-product-form',
-  templateUrl: './product-form.component.html',
-  styleUrls: ['./product-form.component.css']
+    selector: 'app-product-form',
+    templateUrl: './product-form.component.html',
+    styleUrls: ['./product-form.component.css'],
+    standalone: false
 })
 export class ProductFormComponent implements OnInit, OnDestroy {
   productForm!: FormGroup;

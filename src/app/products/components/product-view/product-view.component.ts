@@ -6,9 +6,10 @@ import { ProductService } from '../../../services/product.service';
 import Swal from 'sweetalert2';
 
 @Component({
-  selector: 'app-product-view',
-  templateUrl: './product-view.component.html',
-  styleUrls: ['./product-view.component.css']
+    selector: 'app-product-view',
+    templateUrl: './product-view.component.html',
+    styleUrls: ['./product-view.component.css'],
+    standalone: false
 })
 export class ProductViewComponent implements OnInit, OnDestroy {
   product: Product | null = null;

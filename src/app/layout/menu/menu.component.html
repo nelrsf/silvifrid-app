@@ -3,5 +3,9 @@
         <a class="btn btn-outline-success my-2 mx-5" [href]="getUrl(item)" *ngFor="let item of permissionsAsMenu">
             {{item.caption}}
         </a>
+        <!-- Direct link to products management -->
+        <a class="btn btn-outline-primary my-2 mx-5" routerLink="/products">
+            <i class="fas fa-box"></i> Gestión de Productos
+        </a>
     </div>
 </div>

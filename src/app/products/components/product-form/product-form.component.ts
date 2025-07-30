@@ -82,16 +82,50 @@ export class ProductFormComponent implements OnInit, OnDestroy {
   onImageFileSelected(event: any): void {
     const files = event.target.files;
     if (files && files.length > 0) {
-      // Clear previous previews
-      this.previewImages = [];
-      
       for (let i = 0; i < files.length; i++) {
         const file = files[i];
-        if (this.isValidImageFile(file)) {
+        if (this.isValidImageFile(file) && !this.isDuplicateImage(file)) {
           this.createPreviewImage(file);
         }
       }
     }
+  }
+
+  private isDuplicateImage(file: File): boolean {
+    // Check if image already exists in preview images
+    const isDuplicateInPreview = this.previewImages.some(preview => 
+      preview.file.name === file.name && 
+      preview.file.size === file.size &&
+      preview.file.type === file.type
+    );
+
+    if (isDuplicateInPreview) {
+      Swal.fire({
+        icon: 'warning',
+        title: 'Imagen duplicada',
+        text: `La imagen "${file.name}" ya ha sido seleccionada`
+      });
+      return true;
+    }
+
+    // Check if image already exists in current images
+    const isDuplicateInCurrent = this.images.some(image => 
+      image.file && 
+      image.file.name === file.name && 
+      image.file.size === file.size &&
+      image.file.type === file.type
+    );
+
+    if (isDuplicateInCurrent) {
+      Swal.fire({
+        icon: 'warning',
+        title: 'Imagen duplicada',
+        text: `La imagen "${file.name}" ya existe en el producto`
+      });
+      return true;
+    }
+
+    return false;
   }
 
   private createPreviewImage(file: File): void {

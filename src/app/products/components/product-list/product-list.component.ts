@@ -4,16 +4,27 @@ import { Subscription } from 'rxjs';
 import { Product } from '../../../model/product';
 import { ProductService } from '../../../services/product.service';
 import Swal from 'sweetalert2';
+import { faPlus, faDatabase, faBoxOpen, faEye, faEdit, faTrash, faInfoCircle } from '@fortawesome/free-solid-svg-icons';
 
 @Component({
-  selector: 'app-product-list',
-  templateUrl: './product-list.component.html',
-  styleUrls: ['./product-list.component.css']
+    selector: 'app-product-list',
+    templateUrl: './product-list.component.html',
+    styleUrls: ['./product-list.component.css'],
+    standalone: false
 })
 export class ProductListComponent implements OnInit, OnDestroy {
   products: Product[] = [];
   isLoading = true;
   private subscription: Subscription = new Subscription();
+
+  // FontAwesome icons
+  faPlus = faPlus;
+  faDatabase = faDatabase;
+  faBoxOpen = faBoxOpen;
+  faEye = faEye;
+  faEdit = faEdit;
+  faTrash = faTrash;
+  faInfoCircle = faInfoCircle;
 
   constructor(
     private productService: ProductService,

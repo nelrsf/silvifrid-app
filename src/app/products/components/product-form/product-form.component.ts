@@ -5,6 +5,7 @@ import { Subscription } from 'rxjs';
 import { Product, ProductImage } from '../../../model/product';
 import { ProductService } from '../../../services/product.service';
 import Swal from 'sweetalert2';
+import { faBox, faInfoCircle, faImages, faTrash, faStar, faExclamationTriangle, faTimes, faSave } from '@fortawesome/free-solid-svg-icons';
 
 @Component({
     selector: 'app-product-form',
@@ -21,8 +22,18 @@ export class ProductFormComponent implements OnInit, OnDestroy {
   currentProduct: Product | null = null;
   
   images: ProductImage[] = [];
-  previewImages: { file: File, url: string }[] = [];
+  previewImages: { file: File, url: string, isMain: boolean }[] = [];
   private subscription: Subscription = new Subscription();
+
+  // FontAwesome icons
+  faBox = faBox;
+  faInfoCircle = faInfoCircle;
+  faImages = faImages;
+  faTrash = faTrash;
+  faStar = faStar;
+  faExclamationTriangle = faExclamationTriangle;
+  faTimes = faTimes;
+  faSave = faSave;
 
   constructor(
     private fb: FormBuilder,
@@ -133,7 +144,8 @@ export class ProductFormComponent implements OnInit, OnDestroy {
     reader.onload = (e: any) => {
       this.previewImages.push({
         file: file,
-        url: e.target.result
+        url: e.target.result,
+        isMain: this.images.length === 0 && this.previewImages.length === 0 // First image overall is main
       });
     };
     reader.readAsDataURL(file);
@@ -141,6 +153,15 @@ export class ProductFormComponent implements OnInit, OnDestroy {
 
   removePreviewImage(index: number): void {
     this.previewImages.splice(index, 1);
+  }
+
+  setMainPreviewImage(index: number): void {
+    // Unset main for all existing images and preview images
+    this.images.forEach(img => img.isMain = false);
+    this.previewImages.forEach(preview => preview.isMain = false);
+    
+    // Set the selected preview image as main
+    this.previewImages[index].isMain = true;
   }
 
   private isValidImageFile(file: File): boolean {
@@ -195,6 +216,8 @@ export class ProductFormComponent implements OnInit, OnDestroy {
   }
 
   setMainImage(imageId: string): void {
+    // Unset main for all preview images
+    this.previewImages.forEach(preview => preview.isMain = false);
     this.images.forEach(img => {
       img.isMain = img.id === imageId;
     });
@@ -279,7 +302,7 @@ export class ProductFormComponent implements OnInit, OnDestroy {
         const newImage: ProductImage = {
           id: imageId,
           url: imageId,
-          isMain: this.images.length === 0,
+          isMain: preview.isMain || (this.images.length === 0 && this.previewImages.indexOf(preview) === 0),
           file: preview.file
         };
         

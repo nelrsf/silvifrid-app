@@ -4,7 +4,7 @@
       <div class="card">
         <div class="card-header bg-primary text-white">
           <h4 class="mb-0">
-            <i class="fas fa-box"></i>
+            <fa-icon [icon]="faBox"></fa-icon>
             {{ isEditMode ? 'Editar Producto' : 'Crear Nuevo Producto' }}
           </h4>
         </div>
@@ -24,7 +24,7 @@
               <!-- Basic Information -->
               <div class="col-md-6">
                 <h5 class="text-muted mb-3">
-                  <i class="fas fa-info-circle"></i> Información Básica
+                  <fa-icon [icon]="faInfoCircle"></fa-icon> Información Básica
                 </h5>
                 
                 <!-- Product Name -->
@@ -99,7 +99,7 @@
               <!-- Images Section -->
               <div class="col-md-6">
                 <h5 class="text-muted mb-3">
-                  <i class="fas fa-images"></i> Imágenes del Producto
+                  <fa-icon [icon]="faImages"></fa-icon> Imágenes del Producto
                 </h5>
 
                 <!-- Image Upload -->
@@ -133,10 +133,19 @@
                           <div class="image-actions">
                             <button 
                               type="button"
+                              class="btn btn-sm me-1"
+                              [class.btn-success]="preview.isMain"
+                              [class.btn-outline-light]="!preview.isMain"
+                              (click)="setMainPreviewImage(i)"
+                              title="Establecer como principal">
+                              <fa-icon [icon]="faStar"></fa-icon>
+                            </button>
+                            <button 
+                              type="button"
                               class="btn btn-sm btn-outline-danger"
                               (click)="removePreviewImage(i)"
                               title="Eliminar vista previa">
-                              <i class="fas fa-trash"></i>
+                              <fa-icon [icon]="faTrash"></fa-icon>
                             </button>
                           </div>
                         </div>
@@ -166,14 +175,14 @@
                               [class.btn-outline-light]="!image.isMain"
                               (click)="setMainImage(image.id)"
                               title="Establecer como principal">
-                              <i class="fas fa-star"></i>
+                              <fa-icon [icon]="faStar"></fa-icon>
                             </button>
                             <button 
                               type="button"
                               class="btn btn-sm btn-outline-danger"
                               (click)="removeImage(image.id)"
                               title="Eliminar imagen">
-                              <i class="fas fa-trash"></i>
+                              <fa-icon [icon]="faTrash"></fa-icon>
                             </button>
                           </div>
                         </div>
@@ -188,7 +197,7 @@
 
                 <!-- No images message -->
                 <div *ngIf="images.length === 0 && previewImages.length === 0" class="alert alert-warning">
-                  <i class="fas fa-exclamation-triangle"></i>
+                  <fa-icon [icon]="faExclamationTriangle"></fa-icon>
                   <strong>Atención:</strong> Debe agregar al menos una imagen del producto.
                 </div>
               </div>
@@ -203,14 +212,14 @@
                     class="btn btn-secondary"
                     (click)="cancel()"
                     [disabled]="isSaving">
-                    <i class="fas fa-times"></i> Cancelar
+                    <fa-icon [icon]="faTimes"></fa-icon> Cancelar
                   </button>
                   <button 
                     type="submit" 
                     class="btn btn-primary"
                     [disabled]="productForm.invalid || (images.length === 0 && previewImages.length === 0) || isSaving">
                     <span *ngIf="isSaving" class="spinner-border spinner-border-sm me-2" role="status"></span>
-                    <i *ngIf="!isSaving" class="fas fa-save"></i>
+                    <fa-icon *ngIf="!isSaving" [icon]="faSave"></fa-icon>
                     {{ isEditMode ? 'Actualizar' : 'Crear' }} Producto
                   </button>
                 </div>

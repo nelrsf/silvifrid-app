@@ -43,6 +43,53 @@
   left: 8px;
 }
 
+.selected-badge {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+}
+
+/* Demo image specific styles */
+.demo-image {
+  cursor: pointer;
+  border: 2px solid transparent;
+  transition: all 0.3s ease;
+}
+
+.demo-image:hover {
+  border-color: #0d6efd;
+}
+
+.demo-image.selected {
+  border-color: #198754;
+  box-shadow: 0 0 0 0.2rem rgba(25, 135, 84, 0.25);
+}
+
+.demo-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(13, 110, 253, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  color: white;
+  font-weight: 500;
+}
+
+.demo-image:hover .demo-overlay {
+  opacity: 1;
+}
+
+.demo-text {
+  text-align: center;
+  padding: 0.5rem;
+}
+
 .card {
   border: none;
   box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
@@ -118,4 +165,28 @@ h5 i {
 
 .gap-2 {
   gap: 0.5rem !important;
+}
+
+/* File upload styling */
+.file-upload-container {
+  border: 2px dashed #ced4da;
+  border-radius: 8px;
+  padding: 1.5rem;
+  text-align: center;
+  transition: all 0.3s ease;
+}
+
+.file-upload-container:hover {
+  border-color: #0d6efd;
+  background-color: #f8f9fa;
+}
+
+.file-upload-container .btn {
+  padding: 0.75rem 1.5rem;
+  font-size: 1rem;
+}
+
+.file-upload-container .form-text {
+  margin-top: 0.75rem;
+  color: #6c757d;
 }

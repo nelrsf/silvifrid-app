@@ -2,11 +2,11 @@
   <div class="d-flex justify-content-between align-items-center mb-4">
     <h2 class="mb-0">Gestión de Productos</h2>
     <div>
-      <button class="btn btn-primary me-2" (click)="createProduct()">
+      <button class="btn btn-primary me-2" (click)="createProduct()" *ngIf="canCreateProducts()">
         <fa-icon [icon]="faPlus"></fa-icon> Crear Producto
       </button>
-      <button class="btn btn-secondary" (click)="seedDemoData()" *ngIf="products.length === 0">
-        <fa-icon [icon]="faDatabase"></fa-icon> Datos Demo
+      <button class="btn btn-secondary" (click)="refreshProducts()">
+        <fa-icon [icon]="faDatabase"></fa-icon> Actualizar
       </button>
     </div>
   </div>
@@ -26,7 +26,7 @@
     </div>
     <h4 class="text-muted">No hay productos registrados</h4>
     <p class="text-muted">Comienza creando tu primer producto</p>
-    <button class="btn btn-primary" (click)="createProduct()">
+    <button class="btn btn-primary" (click)="createProduct()" *ngIf="canCreateProducts()">
       <fa-icon [icon]="faPlus"></fa-icon> Crear Primer Producto
     </button>
   </div>
@@ -42,10 +42,10 @@
                 <thead class="table-dark">
                   <tr>
                     <th style="width: 80px;">Imagen</th>
-                    <th>Código</th>
                     <th>Nombre</th>
-                    <th>Precio</th>
-                    <th>Creado</th>
+                    <th>Precio Base</th>
+                    <th>Precio Extendido</th>
+                    <th>Stock</th>
                     <th style="width: 200px;">Acciones</th>
                   </tr>
                 </thead>
@@ -53,15 +53,12 @@
                   <tr *ngFor="let product of products">
                     <td>
                       <img 
-                        [src]="getImageUrl(product)" 
+                        [src]="getMainImageUrl(product)" 
                         [alt]="product.name"
                         class="img-thumbnail product-image"
                         style="width: 60px; height: 60px; object-fit: cover;"
                         onerror="this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjYwIiBoZWlnaHQ9IjYwIiBmaWxsPSIjZjhGOWZhIi8+CjxwYXRoIGQ9Ik0zMCAyNUMzMi43NjE0IDI1IDM1IDI3LjIzODYgMzUgMzBDMzUgMzIuNzYxNCAzMi43NjE0IDM1IDMwIDM1QzI3LjIzODYgMzUgMjUgMzIuNzYxNCAyNSAzMEMyNSAyNy4yMzg2IDI3LjIzODYgMjUgMzAgMjVaIiBmaWxsPSIjNjc3NTg5Ii8+CjxwYXRoIGQ9Ik0yMCAyMEg0MEMuNTUyMyAyMCA0MSAyMC40NDc3IDQxIDIxVjM5QzQxIDM5LjU1MjMgNDAuNTUyMyA0MCA0MCA0MEgyMEMxOS40NDc3IDQwIDE5IDM5LjU1MjMgMTkgMzlWMjFDMTkgMjAuNDQ3NyAxOS40NDc3IDIwIDIwIDIwWiIgc3Ryb2tlPSIjNjc3NTg5IiBzdHJva2Utd2lkdGg9IjIiIGZpbGw9Im5vbmUiLz4KPC9zdmc+'"
                       >
-                    </td>
-                    <td>
-                      <span class="badge bg-secondary">{{ product.code }}</span>
                     </td>
                     <td>
                       <div class="fw-semibold">{{ product.name }}</div>
@@ -76,7 +73,15 @@
                       <span class="fw-bold text-success">{{ formatPrice(product.price) }}</span>
                     </td>
                     <td>
-                      <small class="text-muted">{{ product.createdAt | date:'short' }}</small>
+                      <span class="fw-bold text-info">{{ formatPrice(product.extendedPrice) }}</span>
+                    </td>
+                    <td>
+                      <span class="badge" 
+                            [class.bg-success]="product.stock > 10"
+                            [class.bg-warning]="product.stock > 0 && product.stock <= 10"
+                            [class.bg-danger]="product.stock === 0">
+                        <fa-icon [icon]="faBox"></fa-icon> {{ product.stock }}
+                      </span>
                     </td>
                     <td>
                       <div class="btn-group" role="group">
@@ -89,13 +94,15 @@
                         <button 
                           class="btn btn-sm btn-outline-warning" 
                           (click)="editProduct(product)"
-                          title="Editar producto">
+                          title="Editar producto"
+                          *ngIf="canEditProducts()">
                           <fa-icon [icon]="faEdit"></fa-icon>
                         </button>
                         <button 
                           class="btn btn-sm btn-outline-danger" 
                           (click)="deleteProduct(product)"
-                          title="Eliminar producto">
+                          title="Eliminar producto"
+                          *ngIf="canDeleteProducts()">
                           <fa-icon [icon]="faTrash"></fa-icon>
                         </button>
                       </div>

@@ -2,10 +2,12 @@ import { Component, OnInit, OnDestroy } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { Subscription } from 'rxjs';
-import { Product, ProductImage } from '../../../model/product';
+import { Product, ProductCreateDto, ProductUpdateDto } from '../../../model/product';
 import { ProductService } from '../../../services/product.service';
+import { ImageService } from '../../../services/image.service';
+import { PermissionService } from '../../../services/permission.service';
 import Swal from 'sweetalert2';
-import { faBox, faInfoCircle, faImages, faTrash, faStar, faExclamationTriangle, faTimes, faSave } from '@fortawesome/free-solid-svg-icons';
+import { faBox, faInfoCircle, faImages, faTrash, faStar, faExclamationTriangle, faTimes, faSave, faDollarSign, faUpload } from '@fortawesome/free-solid-svg-icons';
 
 @Component({
     selector: 'app-product-form',
@@ -21,8 +23,7 @@ export class ProductFormComponent implements OnInit, OnDestroy {
   productId: string | null = null;
   currentProduct: Product | null = null;
   
-  images: ProductImage[] = [];
-  previewImages: { file: File, url: string, isMain: boolean }[] = [];
+  images: string[] = [];
   private subscription: Subscription = new Subscription();
 
   // FontAwesome icons
@@ -34,22 +35,59 @@ export class ProductFormComponent implements OnInit, OnDestroy {
   faExclamationTriangle = faExclamationTriangle;
   faTimes = faTimes;
   faSave = faSave;
+  faDollarSign = faDollarSign;
+  faUpload = faUpload;
 
   constructor(
     private fb: FormBuilder,
     private route: ActivatedRoute,
     private router: Router,
-    private productService: ProductService
+    private productService: ProductService,
+    private imageService: ImageService,
+    private permissionService: PermissionService
   ) {
     this.initForm();
   }
 
   ngOnInit(): void {
+    // Check permissions
+    if (!this.permissionService.canCreateProducts() && !this.permissionService.canEditProducts()) {
+      Swal.fire({
+        icon: 'error',
+        title: 'Sin permisos',
+        text: 'No tiene permisos para crear o editar productos'
+      }).then(() => {
+        this.router.navigate(['/products']);
+      });
+      return;
+    }
+
     this.productId = this.route.snapshot.paramMap.get('id');
     this.isEditMode = !!this.productId;
     
     if (this.isEditMode && this.productId) {
+      if (!this.permissionService.canEditProducts()) {
+        Swal.fire({
+          icon: 'error',
+          title: 'Sin permisos',
+          text: 'No tiene permisos para editar productos'
+        }).then(() => {
+          this.router.navigate(['/products']);
+        });
+        return;
+      }
       this.loadProduct(this.productId);
+    } else {
+      if (!this.permissionService.canCreateProducts()) {
+        Swal.fire({
+          icon: 'error',
+          title: 'Sin permisos',
+          text: 'No tiene permisos para crear productos'
+        }).then(() => {
+          this.router.navigate(['/products']);
+        });
+        return;
+      }
     }
   }
 
@@ -61,231 +99,134 @@ export class ProductFormComponent implements OnInit, OnDestroy {
     this.productForm = this.fb.group({
       name: ['', [Validators.required, Validators.minLength(3), Validators.maxLength(100)]],
       price: [0, [Validators.required, Validators.min(1)]],
-      stockQuantity: [0, [Validators.required, Validators.min(0)]],
-      description: ['', [Validators.required, Validators.minLength(10), Validators.maxLength(1000)]]
+      extendedPrice: [0, [Validators.required, Validators.min(1)]],
+      stock: [0, [Validators.required, Validators.min(0)]],
+      description: ['', [Validators.required, Validators.minLength(10), Validators.maxLength(5000)]]
     });
   }
 
   private loadProduct(id: string): void {
     this.isLoading = true;
-    this.currentProduct = this.productService.getProductById(id) || null;
-    
-    if (this.currentProduct) {
-      this.productForm.patchValue({
-        name: this.currentProduct.name,
-        price: this.currentProduct.price,
-        stockQuantity: this.currentProduct.stockQuantity,
-        description: this.currentProduct.description
-      });
-      this.images = [...this.currentProduct.images];
-      this.isLoading = false;
-    } else {
-      Swal.fire({
-        icon: 'error',
-        title: 'Error',
-        text: 'Producto no encontrado'
-      }).then(() => {
-        this.router.navigate(['/products']);
-      });
-    }
+    this.subscription.add(
+      this.productService.getProductById(id).subscribe({
+        next: (product) => {
+          this.currentProduct = product;
+          this.productForm.patchValue({
+            name: product.name,
+            price: product.price,
+            extendedPrice: product.extendedPrice,
+            stock: product.stock,
+            description: product.description
+          });
+          this.images = [...product.images];
+          this.isLoading = false;
+        },
+        error: (error) => {
+          console.error('Error loading product:', error);
+          this.isLoading = false;
+          Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: 'Producto no encontrado'
+          }).then(() => {
+            this.router.navigate(['/products']);
+          });
+        }
+      })
+    );
   }
 
-  onImageFileSelected(event: any): void {
-    const files = event.target.files;
+  onFileSelect(event: Event): void {
+    const target = event.target as HTMLInputElement;
+    const files = target.files;
+    
     if (files && files.length > 0) {
       for (let i = 0; i < files.length; i++) {
         const file = files[i];
-        if (this.isValidImageFile(file) && !this.isDuplicateImage(file)) {
-          this.createPreviewImage(file);
+        
+        // Check if it's an image file
+        if (file.type.startsWith('image/')) {
+          const reader = new FileReader();
+          reader.onload = (e) => {
+            const imageUrl = e.target?.result as string;
+            if (imageUrl && !this.images.includes(imageUrl)) {
+              this.images.push(imageUrl);
+            }
+          };
+          reader.readAsDataURL(file);
+        } else {
+          Swal.fire({
+            icon: 'warning',
+            title: 'Archivo no válido',
+            text: `El archivo "${file.name}" no es una imagen válida.`
+          });
         }
       }
-    }
-  }
-
-  private isDuplicateImage(file: File): boolean {
-    // Check if image already exists in preview images
-    const isDuplicateInPreview = this.previewImages.some(preview => 
-      preview.file.name === file.name && 
-      preview.file.size === file.size &&
-      preview.file.type === file.type
-    );
-
-    if (isDuplicateInPreview) {
-      Swal.fire({
-        icon: 'warning',
-        title: 'Imagen duplicada',
-        text: `La imagen "${file.name}" ya ha sido seleccionada`
-      });
-      return true;
-    }
-
-    // Check if image already exists in current images
-    const isDuplicateInCurrent = this.images.some(image => 
-      image.file && 
-      image.file.name === file.name && 
-      image.file.size === file.size &&
-      image.file.type === file.type
-    );
-
-    if (isDuplicateInCurrent) {
-      Swal.fire({
-        icon: 'warning',
-        title: 'Imagen duplicada',
-        text: `La imagen "${file.name}" ya existe en el producto`
-      });
-      return true;
-    }
-
-    return false;
-  }
-
-  private createPreviewImage(file: File): void {
-    const reader = new FileReader();
-    reader.onload = (e: any) => {
-      this.previewImages.push({
-        file: file,
-        url: e.target.result,
-        isMain: this.images.length === 0 && this.previewImages.length === 0 // First image overall is main
-      });
-    };
-    reader.readAsDataURL(file);
-  }
-
-  removePreviewImage(index: number): void {
-    this.previewImages.splice(index, 1);
-  }
-
-  setMainPreviewImage(index: number): void {
-    // Unset main for all existing images and preview images
-    this.images.forEach(img => img.isMain = false);
-    this.previewImages.forEach(preview => preview.isMain = false);
-    
-    // Set the selected preview image as main
-    this.previewImages[index].isMain = true;
-  }
-
-  private isValidImageFile(file: File): boolean {
-    const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
-    const maxSize = 5 * 1024 * 1024; // 5MB
-
-    if (!validTypes.includes(file.type)) {
-      Swal.fire({
-        icon: 'error',
-        title: 'Tipo de archivo no válido',
-        text: 'Solo se permiten archivos de imagen (JPEG, PNG, GIF, WebP)'
-      });
-      return false;
-    }
-
-    if (file.size > maxSize) {
-      Swal.fire({
-        icon: 'error',
-        title: 'Archivo muy grande',
-        text: 'El archivo no debe superar los 5MB'
-      });
-      return false;
-    }
-
-    return true;
-  }
-
-  private async processImageFile(file: File): Promise<void> {
-    try {
-      const imageId = await this.productService.saveImageToStorage(file);
-      const newImage: ProductImage = {
-        id: imageId,
-        url: imageId, // Store the imageId as URL, will be resolved by service
-        isMain: this.images.length === 0, // First image is main
-        file: file
-      };
       
-      // If this is set as main, unset others
-      if (newImage.isMain) {
-        this.images.forEach(img => img.isMain = false);
-      }
-      
-      this.images.push(newImage);
-    } catch (error) {
-      console.error('Error processing image:', error);
-      Swal.fire({
-        icon: 'error',
-        title: 'Error',
-        text: 'Error al procesar la imagen'
-      });
+      // Clear the input to allow selecting the same files again if needed
+      target.value = '';
     }
   }
 
-  setMainImage(imageId: string): void {
-    // Unset main for all preview images
-    this.previewImages.forEach(preview => preview.isMain = false);
-    this.images.forEach(img => {
-      img.isMain = img.id === imageId;
-    });
+  removeImage(index: number): void {
+    this.images.splice(index, 1);
   }
 
-  removeImage(imageId: string): void {
-    const imageIndex = this.images.findIndex(img => img.id === imageId);
-    if (imageIndex > -1) {
-      const removedImage = this.images[imageIndex];
-      this.images.splice(imageIndex, 1);
-      
-      // If we removed the main image, make the first remaining image main
-      if (removedImage.isMain && this.images.length > 0) {
-        this.images[0].isMain = true;
-      }
+  moveImageToFirst(index: number): void {
+    if (index > 0) {
+      const [image] = this.images.splice(index, 1);
+      this.images.unshift(image);
     }
   }
 
-  getImageUrl(image: ProductImage): string {
-    if (image.url.startsWith('img_')) {
-      return this.productService.getImageUrl(image.url);
-    }
-    return image.url;
+  getMainImageUrl(): string {
+    return this.images.length > 0 ? this.images[0] : '';
   }
 
   onSubmit(): void {
-    if (this.productForm.valid && (this.images.length > 0 || this.previewImages.length > 0)) {
+    if (this.productForm.valid && this.images.length > 0) {
       this.isSaving = true;
       
-      // Process preview images first
-      this.processPreviewImages().then(() => {
-        const productData = {
-          ...this.productForm.value,
-          images: this.images
-        };
+      const productData: ProductCreateDto | ProductUpdateDto = {
+        name: this.productForm.value.name,
+        description: this.productForm.value.description,
+        price: this.productForm.value.price,
+        extendedPrice: this.productForm.value.extendedPrice,
+        stock: this.productForm.value.stock,
+        images: this.images
+      };
 
-        const operation = this.isEditMode && this.productId
-          ? this.productService.updateProduct(this.productId, productData)
-          : this.productService.createProduct(productData);
+      const operation = this.isEditMode && this.productId
+        ? this.productService.updateProduct(this.productId, productData as ProductUpdateDto)
+        : this.productService.createProduct(productData as ProductCreateDto);
 
-        this.subscription.add(
-          operation.subscribe({
-            next: (product) => {
-              const message = this.isEditMode ? 'actualizado' : 'creado';
-              Swal.fire({
-                icon: 'success',
-                title: 'Éxito',
-                text: `Producto ${message} exitosamente`,
-                timer: 2000
-              }).then(() => {
-                this.router.navigate(['/products']);
-              });
-            },
-            error: (error) => {
-              console.error('Error saving product:', error);
-              this.isSaving = false;
-              Swal.fire({
-                icon: 'error',
-                title: 'Error',
-                text: 'Error al guardar el producto'
-              });
-            }
-          })
-        );
-      });
+      this.subscription.add(
+        operation.subscribe({
+          next: (product) => {
+            const message = this.isEditMode ? 'actualizado' : 'creado';
+            Swal.fire({
+              icon: 'success',
+              title: 'Éxito',
+              text: `Producto ${message} exitosamente`,
+              timer: 2000
+            }).then(() => {
+              this.router.navigate(['/products']);
+            });
+          },
+          error: (error) => {
+            console.error('Error saving product:', error);
+            this.isSaving = false;
+            Swal.fire({
+              icon: 'error',
+              title: 'Error',
+              text: error || 'Error al guardar el producto'
+            });
+          }
+        })
+      );
     } else {
       this.markFormGroupTouched();
-      if (this.images.length === 0 && this.previewImages.length === 0) {
+      if (this.images.length === 0) {
         Swal.fire({
           icon: 'warning',
           title: 'Imagen requerida',
@@ -293,29 +234,6 @@ export class ProductFormComponent implements OnInit, OnDestroy {
         });
       }
     }
-  }
-
-  private async processPreviewImages(): Promise<void> {
-    for (const preview of this.previewImages) {
-      try {
-        const imageId = await this.productService.saveImageToStorage(preview.file);
-        const newImage: ProductImage = {
-          id: imageId,
-          url: imageId,
-          isMain: preview.isMain || (this.images.length === 0 && this.previewImages.indexOf(preview) === 0),
-          file: preview.file
-        };
-        
-        if (newImage.isMain) {
-          this.images.forEach(img => img.isMain = false);
-        }
-        
-        this.images.push(newImage);
-      } catch (error) {
-        console.error('Error processing preview image:', error);
-      }
-    }
-    this.previewImages = [];
   }
 
   private markFormGroupTouched(): void {

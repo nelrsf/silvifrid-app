@@ -3,8 +3,9 @@ import { Router } from '@angular/router';
 import { Subscription } from 'rxjs';
 import { Product } from '../../../model/product';
 import { ProductService } from '../../../services/product.service';
+import { PermissionService } from '../../../services/permission.service';
 import Swal from 'sweetalert2';
-import { faPlus, faDatabase, faBoxOpen, faEye, faEdit, faTrash, faInfoCircle } from '@fortawesome/free-solid-svg-icons';
+import { faPlus, faDatabase, faBoxOpen, faEye, faEdit, faTrash, faInfoCircle, faDollarSign, faBox } from '@fortawesome/free-solid-svg-icons';
 
 @Component({
     selector: 'app-product-list',
@@ -25,13 +26,27 @@ export class ProductListComponent implements OnInit, OnDestroy {
   faEdit = faEdit;
   faTrash = faTrash;
   faInfoCircle = faInfoCircle;
+  faDollarSign = faDollarSign;
+  faBox = faBox;
 
   constructor(
     private productService: ProductService,
+    private permissionService: PermissionService,
     private router: Router
   ) { }
 
   ngOnInit(): void {
+    if (!this.permissionService.canViewProducts()) {
+      Swal.fire({
+        icon: 'error',
+        title: 'Sin permisos',
+        text: 'No tiene permisos para ver productos'
+      }).then(() => {
+        this.router.navigate(['/']);
+      });
+      return;
+    }
+    
     this.loadProducts();
   }
 
@@ -53,7 +68,7 @@ export class ProductListComponent implements OnInit, OnDestroy {
           Swal.fire({
             icon: 'error',
             title: 'Error',
-            text: 'Error al cargar los productos'
+            text: error || 'Error al cargar los productos'
           });
         }
       })
@@ -61,18 +76,43 @@ export class ProductListComponent implements OnInit, OnDestroy {
   }
 
   createProduct(): void {
+    if (!this.permissionService.canCreateProducts()) {
+      Swal.fire({
+        icon: 'error',
+        title: 'Sin permisos',
+        text: 'No tiene permisos para crear productos'
+      });
+      return;
+    }
     this.router.navigate(['/products/create']);
   }
 
   viewProduct(product: Product): void {
-    this.router.navigate(['/products/view', product.id]);
+    this.router.navigate(['/products/view', product._id]);
   }
 
   editProduct(product: Product): void {
-    this.router.navigate(['/products/edit', product.id]);
+    if (!this.permissionService.canEditProducts()) {
+      Swal.fire({
+        icon: 'error',
+        title: 'Sin permisos',
+        text: 'No tiene permisos para editar productos'
+      });
+      return;
+    }
+    this.router.navigate(['/products/edit', product._id]);
   }
 
   deleteProduct(product: Product): void {
+    if (!this.permissionService.canDeleteProducts()) {
+      Swal.fire({
+        icon: 'error',
+        title: 'Sin permisos',
+        text: 'No tiene permisos para eliminar productos'
+      });
+      return;
+    }
+
     Swal.fire({
       title: '¿Estás seguro?',
       text: `¿Deseas eliminar el producto "${product.name}"?`,
@@ -83,23 +123,25 @@ export class ProductListComponent implements OnInit, OnDestroy {
       confirmButtonText: 'Sí, eliminar',
       cancelButtonText: 'Cancelar'
     }).then((result) => {
-      if (result.isConfirmed) {
+      if (result.isConfirmed && product._id) {
         this.subscription.add(
-          this.productService.deleteProduct(product.id).subscribe({
-            next: () => {
-              Swal.fire({
-                icon: 'success',
-                title: 'Eliminado',
-                text: 'El producto ha sido eliminado exitosamente',
-                timer: 2000
-              });
+          this.productService.deleteProduct(product._id).subscribe({
+            next: (result) => {
+              if (result.success) {
+                Swal.fire({
+                  icon: 'success',
+                  title: 'Eliminado',
+                  text: 'El producto ha sido eliminado exitosamente',
+                  timer: 2000
+                });
+              }
             },
             error: (error) => {
               console.error('Error deleting product:', error);
               Swal.fire({
                 icon: 'error',
                 title: 'Error',
-                text: 'Error al eliminar el producto'
+                text: error || 'Error al eliminar el producto'
               });
             }
           })
@@ -116,19 +158,24 @@ export class ProductListComponent implements OnInit, OnDestroy {
     }).format(price);
   }
 
-  getImageUrl(product: Product): string {
-    const mainImage = product.mainImage;
-    if (mainImage?.url) {
-      // If it's an image ID, get the actual URL from service
-      if (mainImage.url.startsWith('img_')) {
-        return this.productService.getImageUrl(mainImage.url);
-      }
-      return mainImage.url;
-    }
-    return 'assets/images/no-image.png';
+  getMainImageUrl(product: Product): string {
+    return this.productService.getMainImageUrl(product) || 'assets/images/no-image.png';
   }
 
-  seedDemoData(): void {
-    this.productService.seedDemoData();
+  refreshProducts(): void {
+    this.loadProducts();
+  }
+
+  // Permission checks for template
+  canCreateProducts(): boolean {
+    return this.permissionService.canCreateProducts();
+  }
+
+  canEditProducts(): boolean {
+    return this.permissionService.canEditProducts();
+  }
+
+  canDeleteProducts(): boolean {
+    return this.permissionService.canDeleteProducts();
   }
 }

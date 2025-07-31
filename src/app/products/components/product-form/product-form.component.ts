@@ -7,7 +7,7 @@ import { ProductService } from '../../../services/product.service';
 import { ImageService } from '../../../services/image.service';
 import { PermissionService } from '../../../services/permission.service';
 import Swal from 'sweetalert2';
-import { faBox, faInfoCircle, faImages, faTrash, faStar, faExclamationTriangle, faTimes, faSave, faDollarSign } from '@fortawesome/free-solid-svg-icons';
+import { faBox, faInfoCircle, faImages, faTrash, faStar, faExclamationTriangle, faTimes, faSave, faDollarSign, faUpload } from '@fortawesome/free-solid-svg-icons';
 
 @Component({
     selector: 'app-product-form',
@@ -24,7 +24,6 @@ export class ProductFormComponent implements OnInit, OnDestroy {
   currentProduct: Product | null = null;
   
   images: string[] = [];
-  selectedDemoImages: string[] = [];
   private subscription: Subscription = new Subscription();
 
   // FontAwesome icons
@@ -37,6 +36,7 @@ export class ProductFormComponent implements OnInit, OnDestroy {
   faTimes = faTimes;
   faSave = faSave;
   faDollarSign = faDollarSign;
+  faUpload = faUpload;
 
   constructor(
     private fb: FormBuilder,
@@ -88,8 +88,6 @@ export class ProductFormComponent implements OnInit, OnDestroy {
         });
         return;
       }
-      // Load demo images for new products
-      this.loadDemoImages();
     }
   }
 
@@ -107,23 +105,6 @@ export class ProductFormComponent implements OnInit, OnDestroy {
     });
   }
 
-  private loadDemoImages(): void {
-    this.subscription.add(
-      this.imageService.getDemoImages().subscribe({
-        next: (demoImages) => {
-          this.selectedDemoImages = demoImages;
-          // Set first image as default
-          if (demoImages.length > 0) {
-            this.images = [demoImages[0]];
-          }
-        },
-        error: (error) => {
-          console.error('Error loading demo images:', error);
-        }
-      })
-    );
-  }
-
   private loadProduct(id: string): void {
     this.isLoading = true;
     this.subscription.add(
@@ -139,9 +120,6 @@ export class ProductFormComponent implements OnInit, OnDestroy {
           });
           this.images = [...product.images];
           this.isLoading = false;
-          
-          // Load demo images for additional options
-          this.loadDemoImages();
         },
         error: (error) => {
           console.error('Error loading product:', error);
@@ -158,9 +136,35 @@ export class ProductFormComponent implements OnInit, OnDestroy {
     );
   }
 
-  onDemoImageSelect(imageUrl: string): void {
-    if (!this.images.includes(imageUrl)) {
-      this.images.push(imageUrl);
+  onFileSelect(event: Event): void {
+    const target = event.target as HTMLInputElement;
+    const files = target.files;
+    
+    if (files && files.length > 0) {
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        
+        // Check if it's an image file
+        if (file.type.startsWith('image/')) {
+          const reader = new FileReader();
+          reader.onload = (e) => {
+            const imageUrl = e.target?.result as string;
+            if (imageUrl && !this.images.includes(imageUrl)) {
+              this.images.push(imageUrl);
+            }
+          };
+          reader.readAsDataURL(file);
+        } else {
+          Swal.fire({
+            icon: 'warning',
+            title: 'Archivo no válido',
+            text: `El archivo "${file.name}" no es una imagen válida.`
+          });
+        }
+      }
+      
+      // Clear the input to allow selecting the same files again if needed
+      target.value = '';
     }
   }
 

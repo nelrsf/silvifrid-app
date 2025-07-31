@@ -101,7 +101,7 @@ export class ProductFormComponent implements OnInit, OnDestroy {
       price: [0, [Validators.required, Validators.min(1)]],
       extendedPrice: [0, [Validators.required, Validators.min(1)]],
       stock: [0, [Validators.required, Validators.min(0)]],
-      description: ['', [Validators.required, Validators.minLength(10), Validators.maxLength(1000)]]
+      description: ['', [Validators.required, Validators.minLength(10), Validators.maxLength(5000)]]
     });
   }
 
